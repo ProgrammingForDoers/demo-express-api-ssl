@@ -1,0 +1,43 @@
+#!/bin/bash
+
+SCRIPT_DIR="$(cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ROOT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd )"
+SSL_DIR="${ROOT_DIR}/ssl"
+
+source $SCRIPT_DIR/utilities
+
+SSL_CERT_NAME="localhost.crt"
+SSL_KEY_NAME="localhost.key"
+
+ROOT_CERT_DIR="$(mkcert -CAROOT)"
+
+installCA() {
+  printMsg "Using mkcert to generate a trusted root CA"
+
+  # Generate a install the root CA cert to the system trust store
+  mkcert -install
+
+  # If SSL_DIR doesn't exist, create it
+  if [[ ! -d SSL_DIR ]]; then
+    mkdir $SSL_DIR
+  fi
+
+  # Create local link to the generated root CA cert in SSL_DIR
+  ln -vf \
+    "${ROOT_CERT_DIR}/rootCA.pem" \
+    "${SSL_DIR}/localhost.chain.pem"
+}
+
+generateCertificate() {
+  printMsg "Using mkcert to generate a certificate for *.localhost"
+
+  # Generate a wildcard cert for localhost and *.localhost and
+  # store the cert and the key in SSL_DIR
+  mkcert \
+    -cert-file "${SSL_DIR}/${SSL_CERT_NAME}" \
+    -key-file "${SSL_DIR}/${SSL_KEY_NAME}" \
+    "localhost" "*.localhost"
+}
+
+installCA && \
+generateCertificate
